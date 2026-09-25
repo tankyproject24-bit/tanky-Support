@@ -70,6 +70,15 @@ create table if not exists transfer_requests (
 
 create index if not exists transfer_requests_status_idx on transfer_requests (status, requested_at desc);
 
+-- Lock every table: RLS on with no policies means the public anon key (shipped to the
+-- browser for Realtime) can't read or write anything. The server uses the service_role
+-- key, which bypasses RLS.
+alter table groups enable row level security;
+alter table messages enable row level security;
+alter table summaries enable row level security;
+alter table important_messages enable row level security;
+alter table transfer_requests enable row level security;
+
 -- Realtime: push a lightweight "something changed" signal to the dashboard.
 -- Only the table name is broadcast (no row data), so the public channel leaks nothing;
 -- the dashboard then re-fetches through the server.
