@@ -1,36 +1,63 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LINE Group Insights
 
-## Getting Started
+แดชบอร์ดที่อ่านข้อความจากกลุ่ม LINE ผ่าน LINE Messaging API แล้วใช้ Claude สรุปเนื้อหา หัวข้อ สิ่งที่ต้องทำ และบรรยากาศการสนทนา เก็บข้อมูลใน Supabase (PostgreSQL)
 
-First, run the development server:
+## สถาปัตยกรรม
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+LINE กลุ่ม → LINE Messaging API (webhook) → /api/line/webhook → Supabase (messages, groups)
+                                                                        │
+                                                    /api/summarize ─────┘
+                                                    (Claude API สรุปข้อความ → summaries table)
+                                                                        │
+                                                    หน้า Dashboard (/) อ่านจาก Supabase
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## ตั้งค่าเริ่มต้น
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 1. Supabase
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. สร้างโปรเจกต์ใหม่ที่ [supabase.com](https://supabase.com)
+2. ไปที่ SQL Editor แล้วรันไฟล์ [`supabase/schema.sql`](./supabase/schema.sql) เพื่อสร้างตาราง `groups`, `messages`, `summaries`
+3. เอาค่า Project URL และ `service_role` key จาก Project Settings → API มาใส่ใน `.env.local`
 
-## Learn More
+### 2. LINE Developers Console
 
-To learn more about Next.js, take a look at the following resources:
+1. สร้าง Provider และ Messaging API Channel ที่ [developers.line.biz](https://developers.line.biz)
+2. เปิดใช้งาน Webhook และตั้ง Webhook URL เป็น `https://<โดเมนของคุณ>/api/line/webhook`
+3. เอา Channel secret และ Channel access token (long-lived) มาใส่ใน `.env.local`
+4. เชิญบอทเข้ากลุ่ม LINE ที่ต้องการสรุป (บอทจะเห็นเฉพาะข้อความที่ส่งหลังจากเข้ากลุ่มแล้วเท่านั้น ซึ่งเป็นข้อจำกัดของ LINE)
+5. ปิด auto-reply/greeting message เริ่มต้นถ้าไม่ต้องการให้บอทตอบกลับในกลุ่ม
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 3. Anthropic (Claude API)
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+สร้าง API key ที่ [console.anthropic.com](https://console.anthropic.com) แล้วใส่ใน `.env.local`
 
-## Deploy on Vercel
+### 4. ตัวแปรแวดล้อม
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+คัดลอก `.env.local.example` เป็น `.env.local` แล้วกรอกค่าทั้งหมด:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```bash
+cp .env.local.example .env.local
+```
+
+## พัฒนา
+
+```bash
+npm install
+npm run dev
+```
+
+เปิด [http://localhost:3000](http://localhost:3000)
+
+สำหรับทดสอบ webhook ในเครื่อง ต้อง expose localhost ออกไปนอกเครื่อง (เช่นด้วย `ngrok http 3000`) แล้วเอา URL ที่ได้ไปตั้งใน LINE Developers Console
+
+## การสรุปข้อความ
+
+- กดปุ่ม **"สรุปตอนนี้"** บนแดชบอร์ดเพื่อสรุปข้อความย้อนหลัง 24 ชั่วโมงของกลุ่มนั้น (หรือทุกกลุ่มถ้ากดปุ่มบนหัวข้อ)
+- หรือเรียก `POST /api/summarize` ตรงๆ ด้วย body `{ "groupId": "...", "hours": 24 }` (ละ `groupId` เพื่อสรุปทุกกลุ่ม)
+- ตั้ง `SUMMARIZE_CRON_SECRET` ใน env แล้วส่ง header `x-cron-secret` เพื่อป้องกัน endpoint นี้ และตั้ง cron job (เช่น Vercel Cron) ให้เรียกอัตโนมัติทุกวัน
+
+## Deploy
+
+แนะนำ [Vercel](https://vercel.com/new) — เชื่อมต่อ repo แล้วใส่ environment variables ชุดเดียวกับ `.env.local` ในหน้า Project Settings จากนั้นตั้ง Webhook URL ใน LINE Developers Console ให้ชี้ไปที่โดเมน production
