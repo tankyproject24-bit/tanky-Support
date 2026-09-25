@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { RealtimeRefresh } from "@/components/RealtimeRefresh";
 
 const MENU = [
   { href: "/", label: "หน้าแรก" },
@@ -46,6 +47,7 @@ export function NavBar({ urgentCount }: { urgentCount: number }) {
             );
           })}
         </ul>
+        <RealtimeRefresh />
       </div>
     </nav>
   );

@@ -18,6 +18,12 @@ export function TransferList({
 }) {
   // Rows already ticked/un-ticked here; hidden until the server list refreshes.
   const [hidden, setHidden] = useState<Set<string>>(new Set());
+  // Fresh server data (action revalidate or realtime refresh) supersedes local hiding.
+  const [prevTransfers, setPrevTransfers] = useState(transfers);
+  if (transfers !== prevTransfers) {
+    setPrevTransfers(transfers);
+    setHidden(new Set());
+  }
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);

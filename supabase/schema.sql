@@ -69,3 +69,37 @@ create table if not exists transfer_requests (
 );
 
 create index if not exists transfer_requests_status_idx on transfer_requests (status, requested_at desc);
+
+-- Realtime: push a lightweight "something changed" signal to the dashboard.
+-- Only the table name is broadcast (no row data), so the public channel leaks nothing;
+-- the dashboard then re-fetches through the server.
+create or replace function notify_dashboard_change()
+returns trigger
+language plpgsql
+security definer
+set search_path = ''
+as $$
+begin
+  perform realtime.send(
+    jsonb_build_object('table', TG_TABLE_NAME, 'op', TG_OP),
+    'change',     -- event
+    'dashboard',  -- topic
+    false         -- public channel
+  );
+  return null;
+end;
+$$;
+
+do $$
+declare t text;
+begin
+  foreach t in array array['groups', 'messages', 'summaries', 'important_messages', 'transfer_requests']
+  loop
+    execute format('drop trigger if exists %I on %I', t || '_notify_dashboard', t);
+    execute format(
+      'create trigger %I after insert or update or delete on %I for each statement execute function notify_dashboard_change()',
+      t || '_notify_dashboard', t
+    );
+  end loop;
+end;
+$$;

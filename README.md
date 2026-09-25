@@ -18,8 +18,9 @@ LINE กลุ่ม → LINE Messaging API (webhook) → /api/line/webhook → 
 ### 1. Supabase
 
 1. สร้างโปรเจกต์ใหม่ที่ [supabase.com](https://supabase.com)
-2. ไปที่ SQL Editor แล้วรันไฟล์ [`supabase/schema.sql`](./supabase/schema.sql) เพื่อสร้างตาราง `groups`, `messages`, `summaries`
-3. เอาค่า Project URL และ `service_role` key จาก Project Settings → API มาใส่ใน `.env.local`
+2. ไปที่ SQL Editor แล้วรันไฟล์ [`supabase/schema.sql`](./supabase/schema.sql) เพื่อสร้างตาราง `groups`, `messages`, `summaries`, `important_messages`, `transfer_requests` และ trigger สำหรับ Realtime
+3. เอาค่า Project URL, `service_role` key และ `anon` (publishable) key จาก Project Settings → API มาใส่ใน `.env.local`
+4. Realtime: ตรวจว่า Project Settings → Realtime เปิด "Allow public access" ไว้ — หน้าเว็บฟังช่อง `dashboard` ซึ่งส่งแค่ชื่อตารางที่เปลี่ยน (ไม่มีข้อมูลจริง) แล้วดึงข้อมูลใหม่จากเซิร์ฟเวอร์เอง
 
 ### 2. LINE Developers Console
 
