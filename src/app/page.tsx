@@ -1,6 +1,7 @@
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import type { GroupRow, SummaryRow } from "@/lib/types";
 import { SummarizeButton } from "@/components/SummarizeButton";
+import { getDemoDashboardData } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,9 @@ function SentimentBadge({ sentiment }: { sentiment: string | null }) {
 }
 
 export default async function Home() {
-  const data = await loadDashboardData();
+  const isDemo =
+    !process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const data = isDemo ? getDemoDashboardData() : await loadDashboardData();
 
   return (
     <div className="min-h-screen bg-zinc-50 px-6 py-10 dark:bg-black">
@@ -82,6 +85,12 @@ export default async function Home() {
           </div>
           <SummarizeButton />
         </header>
+
+        {isDemo && (
+          <div className="mb-6 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200">
+            โหมดตัวอย่าง — ข้อมูลด้านล่างเป็นข้อมูลจำลอง จะแสดงข้อมูลจริงเมื่อตั้งค่า Supabase แล้ว
+          </div>
+        )}
 
         {data.length === 0 && (
           <div className="rounded-xl border border-dashed border-zinc-300 p-10 text-center text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
