@@ -35,3 +35,37 @@ create table if not exists summaries (
 );
 
 create index if not exists summaries_group_created_idx on summaries (group_id, created_at desc);
+
+-- Important messages the AI flags while reading group chats (shown on the Reports page).
+create table if not exists important_messages (
+  id uuid primary key default gen_random_uuid(),
+  group_id text not null references groups(id) on delete cascade,
+  message_id uuid references messages(id) on delete set null,
+  display_name text,
+  message_text text not null,
+  reason text, -- why the AI considered it important
+  sent_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+
+create index if not exists important_messages_group_sent_idx on important_messages (group_id, sent_at desc);
+
+-- Money transfer requests detected in group chats (Urgent page).
+-- Ticking one sets status = 'done' and moves it to the History page.
+create table if not exists transfer_requests (
+  id uuid primary key default gen_random_uuid(),
+  group_id text not null references groups(id) on delete cascade,
+  message_id uuid references messages(id) on delete set null,
+  requested_by text,
+  bank_name text,
+  account_number text not null,
+  account_name text not null,
+  amount numeric(14, 2) not null,
+  note text,
+  status text not null default 'pending' check (status in ('pending', 'done')),
+  requested_at timestamptz not null default now(),
+  completed_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists transfer_requests_status_idx on transfer_requests (status, requested_at desc);
